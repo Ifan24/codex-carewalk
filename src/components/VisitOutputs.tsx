@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileCheck, Sparkles, Undo2 } from "lucide-react";
+import { FileCheck, FileText, Sparkles, Undo2 } from "lucide-react";
 import type { OutputDocument, Role, VisitSession } from "@/lib/schemas";
 import { Badge } from "./ui";
 
@@ -35,14 +35,18 @@ export function GenerateVisitPackButton({ visitId }: { visitId: string }) {
   }
 
   return (
-    <div className="rounded-lg border border-teal-200 bg-teal-50 p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-stone-950">
-            <Sparkles className="h-5 w-5 text-teal-700" />
+    <section className="rounded-lg border border-[#d5e4dd] bg-[#f6fbf8] p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="mb-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-800">
+            <span className="h-px w-6 bg-teal-700" />
+            Draft pack
+          </p>
+          <h2 className="flex items-center gap-2 text-xl font-semibold leading-tight text-stone-950">
+            <Sparkles className="h-5 w-5 text-teal-700" aria-hidden="true" />
             Generate visit pack
           </h2>
-          <p className="mt-1 text-sm text-stone-700">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-700">
             Creates worker note, provider compliance log, and family summary from one structured visit.
           </p>
         </div>
@@ -50,13 +54,13 @@ export function GenerateVisitPackButton({ visitId }: { visitId: string }) {
           type="button"
           disabled={busy}
           onClick={generate}
-          className="rounded-md bg-teal-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-md bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 disabled:opacity-50 sm:w-auto"
         >
           Generate visit pack
         </button>
       </div>
       {message ? <p className="mt-3 text-sm font-semibold text-stone-800">{message}</p> : null}
-    </div>
+    </section>
   );
 }
 
@@ -67,8 +71,10 @@ export function VisitOutputs({ visit, role }: { visit: VisitSession; role: Role 
         <OutputCard key={output.id} visitId={visit.id} output={output} role={role} escalationStatus={visit.escalation.status} />
       ))}
       {!visit.outputs.length ? (
-        <div className="rounded-lg border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-600 lg:col-span-3">
-          No generated outputs yet.
+        <div className="rounded-md border border-dashed border-[#cfc7b8] bg-[#fffdf8] p-5 text-sm leading-6 text-stone-600 lg:col-span-3">
+          <FileText className="mb-3 h-5 w-5 text-stone-500" aria-hidden="true" />
+          <p className="font-semibold text-stone-900">No visit pack drafts yet.</p>
+          <p className="mt-1">Generate the pack after checking AI readiness, then review and approve the worker note.</p>
         </div>
       ) : null}
     </div>
@@ -132,7 +138,7 @@ function OutputCard({
   }
 
   return (
-    <article className="flex min-h-[420px] flex-col rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+    <article className="flex min-h-[420px] flex-col rounded-md border border-[#ded8c9] bg-white p-4 shadow-[0_1px_0_rgba(24,32,28,0.06)]">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-teal-700">{labels[output.type]}</p>
@@ -146,7 +152,7 @@ function OutputCard({
       <textarea
         value={body}
         onChange={(event) => setBody(event.target.value)}
-        className="min-h-44 flex-1 rounded-md border border-stone-300 p-3 text-sm leading-6"
+        className="min-h-44 flex-1 rounded-md border border-stone-300 bg-[#fffdf8] p-3 text-sm leading-6"
       />
       <div className="mt-3 flex flex-wrap gap-2">
         {output.safetyFlags.map((flag) => (

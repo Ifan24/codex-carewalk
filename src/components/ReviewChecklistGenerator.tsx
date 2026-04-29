@@ -65,10 +65,10 @@ export function ReviewChecklistGenerator({ visitId }: { visitId: string }) {
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#113f38] px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#0d302b] disabled:opacity-50 md:w-auto"
             >
               <ClipboardCheck className="h-4 w-4" />
-              {busy ? "Reviewing..." : "Generate review"}
+              {busy ? "Reviewing visit..." : "Generate review"}
             </button>
             <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 md:text-right">
-              Draft support only
+              {busy ? "Usually under 20 seconds" : "Draft support only"}
             </p>
           </div>
         </div>

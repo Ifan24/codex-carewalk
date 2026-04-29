@@ -28,13 +28,14 @@ export function SubmitVisitReportButton({ visitId }: { visitId: string }) {
   }
 
   return (
-    <div className="rounded-lg border border-teal-200 bg-teal-50 p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-stone-950">
-            <Send className="h-5 w-5 text-teal-700" /> Submit to supervisor
+    <section className="rounded-lg border border-[#143f38] bg-[#143f38] p-4 text-white shadow-sm sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-100">Final step</p>
+          <h2 className="mt-2 flex items-center gap-2 text-xl font-semibold leading-tight">
+            <Send className="h-5 w-5 text-teal-100" /> Submit to supervisor
           </h2>
-          <p className="mt-1 text-sm text-stone-700">
+          <p className="mt-2 text-sm leading-6 text-teal-50">
             Demo submit sends this visit straight to the supervisor queue.
           </p>
         </div>
@@ -42,12 +43,12 @@ export function SubmitVisitReportButton({ visitId }: { visitId: string }) {
           type="button"
           disabled={busy}
           onClick={submit}
-          className="rounded-md bg-teal-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          className="min-h-12 w-full rounded-md bg-white px-4 py-3 text-sm font-semibold text-[#143f38] shadow-sm hover:bg-teal-50 disabled:opacity-50 sm:w-auto"
         >
           Submit report
         </button>
       </div>
-      {message ? <p className="mt-3 text-sm font-semibold text-stone-800">{message}</p> : null}
-    </div>
+      {message ? <p className="mt-3 text-sm font-semibold text-teal-50">{message}</p> : null}
+    </section>
   );
 }
