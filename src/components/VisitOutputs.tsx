@@ -1,0 +1,153 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { FileCheck, Sparkles } from "lucide-react";
+import type { OutputDocument, Role, VisitSession } from "@/lib/schemas";
+import { Badge } from "./ui";
+
+const labels: Record<OutputDocument["type"], string> = {
+  worker_note: "Worker note",
+  provider_compliance_log: "Provider compliance log",
+  family_summary: "Family summary",
+};
+
+export function GenerateVisitPackButton({ visitId }: { visitId: string }) {
+  const router = useRouter();
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function generate() {
+    setBusy(true);
+    setMessage("");
+    const response = await fetch(`/api/visits/${visitId}/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actorId: "worker_001", actorRole: "worker" }),
+    });
+    const payload = await response.json();
+    setBusy(false);
+    if (!payload.ok) setMessage(payload.error);
+    else {
+      setMessage("Visit pack generated. Review before sign-off.");
+      router.refresh();
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-teal-200 bg-teal-50 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-stone-950">
+            <Sparkles className="h-5 w-5 text-teal-700" />
+            Generate visit pack
+          </h2>
+          <p className="mt-1 text-sm text-stone-700">
+            Creates worker note, provider compliance log, and family summary from one structured visit.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={generate}
+          className="rounded-md bg-teal-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          Generate visit pack
+        </button>
+      </div>
+      {message ? <p className="mt-3 text-sm font-semibold text-stone-800">{message}</p> : null}
+    </div>
+  );
+}
+
+export function VisitOutputs({ visit, role }: { visit: VisitSession; role: Role }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {visit.outputs.map((output) => (
+        <OutputCard key={output.id} visitId={visit.id} output={output} role={role} escalationStatus={visit.escalation.status} />
+      ))}
+      {!visit.outputs.length ? (
+        <div className="rounded-lg border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-600 lg:col-span-3">
+          No generated outputs yet.
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function OutputCard({
+  visitId,
+  output,
+  role,
+  escalationStatus,
+}: {
+  visitId: string;
+  output: OutputDocument;
+  role: Role;
+  escalationStatus: string;
+}) {
+  const router = useRouter();
+  const [body, setBody] = useState(output.body);
+  const [message, setMessage] = useState("");
+  const canApprove =
+    (role === "worker" && output.type === "worker_note") ||
+    (role === "supervisor" && (output.type === "provider_compliance_log" || output.type === "family_summary"));
+  const blockedByRole = output.type === "family_summary" && role === "worker" && escalationStatus !== "none";
+
+  async function approve() {
+    const response = await fetch(`/api/visits/${visitId}/signoff`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        outputId: output.id,
+        actorId: role === "supervisor" ? "supervisor_001" : "worker_001",
+        actorRole: role,
+      }),
+    });
+    const payload = await response.json();
+    if (!payload.ok) setMessage(payload.error);
+    else {
+      setMessage("Approved.");
+      router.refresh();
+    }
+  }
+
+  return (
+    <article className="flex min-h-[420px] flex-col rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-teal-700">{labels[output.type]}</p>
+          <h3 className="text-lg font-semibold text-stone-950">{output.title}</h3>
+        </div>
+        <Badge tone={output.status === "approved" ? "green" : "amber"}>{output.status}</Badge>
+      </div>
+      <div className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+        AI draft. Human sign-off required.
+      </div>
+      <textarea
+        value={body}
+        onChange={(event) => setBody(event.target.value)}
+        className="min-h-44 flex-1 rounded-md border border-stone-300 p-3 text-sm leading-6"
+      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        {output.safetyFlags.map((flag) => (
+          <Badge key={flag} tone={flag.includes("no_") || flag.includes("family") ? "green" : "neutral"}>
+            {flag}
+          </Badge>
+        ))}
+      </div>
+      <p className="mt-3 font-mono text-xs text-stone-500">Evidence: {output.evidenceObservationIds.join(", ") || "none"}</p>
+      {blockedByRole ? <p className="mt-3 text-sm text-amber-800">Worker cannot approve family summary while escalation exists.</p> : null}
+      <button
+        type="button"
+        disabled={!canApprove || output.status === "approved"}
+        onClick={approve}
+        className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <FileCheck className="h-4 w-4" />
+        Approve
+      </button>
+      {message ? <p className="mt-2 text-sm font-semibold text-stone-800">{message}</p> : null}
+    </article>
+  );
+}

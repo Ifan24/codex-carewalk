@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String @id
+  email                String @unique
+  password             String
+  role                 String
+  displayName          String
+  navigationPreference String @default("apple_maps")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model ClientProfile {
+  id                               String @id
+  displayName                      String
+  preferredName                    String
+  dateOfBirth                      String
+  addressJson                      String
+  authorisedFamilyContactsJson     String
+  carePlanSummary                  String
+  knownRisksJson                   String
+  communicationPreferencesJson     String
+  privacyNotes                     String
+  createdAt                        DateTime @default(now())
+  updatedAt                        DateTime @updatedAt
+
+  visits                           VisitSession[]
+}
+
+model VisitSession {
+  id                   String @id
+  clientId             String
+  workerId             String
+  scheduledStart       DateTime
+  scheduledEnd         DateTime
+  actualStart          DateTime?
+  actualEnd            DateTime?
+  status               String
+  captureModesUsedJson String
+  preVisitBriefJson    String
+  humanSignoffJson     String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  client               ClientProfile @relation(fields: [clientId], references: [id])
+  observations         Observation[]
+  consentEvents        ConsentEvent[]
+  redactionEvents      RedactionEvent[]
+  liveRayBanEvents     LiveRayBanEvent[]
+  checklistItems       VisitChecklistItem[]
+  mediaAssets          MediaAsset[]
+  outputs              OutputDocument[]
+  auditEvents          AuditEvent[]
+  followUpTasks        FollowUpTask[]
+  escalation           Escalation?
+}
+
+model Observation {
+  id                  String @id
+  visitId             String
+  category            String
+  label               String
+  status              String
+  description         String
+  evidenceJson        String
+  confidence          String
+  capturedBy          String
+  captureMode         String
+  capturedAt          DateTime
+  isSensitive         Boolean
+  requiresHumanReview Boolean
+  unknownReason       String?
+
+  visit               VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+}
+
+model ConsentEvent {
+  id                      String @id
+  visitId                 String
+  clientId                String
+  actorId                 String
+  consentState            String
+  scopeJson               String
+  captureModesAllowedJson String
+  notes                   String
+  recordedAt              DateTime
+
+  visit                   VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  mediaAssets             MediaAsset[]
+}
+
+model LiveRayBanEvent {
+  id          String @id
+  visitId     String
+  actorId     String
+  actorRole   String
+  eventType   String
+  payloadJson String
+  createdAt   DateTime @default(now())
+
+  visit       VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId, createdAt])
+}
+
+model VisitChecklistItem {
+  id                 String @id
+  visitId            String
+  sequence           Int
+  prompt             String
+  category           String
+  status             String
+  evidenceTranscript String?
+  linkedObservationId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  completedAt        DateTime?
+
+  visit              VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@unique([visitId, sequence])
+  @@index([visitId, status])
+}
+
+model MediaAsset {
+  id                       String @id
+  visitId                  String
+  source                   String
+  captureContext           String
+  consentEventId           String?
+  redactionStatus          String
+  fileName                 String
+  mimeType                 String
+  previewDataUrl           String
+  linkedObservationIdsJson String
+  workerReviewed           Boolean @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  visit                    VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  consentEvent             ConsentEvent? @relation(fields: [consentEventId], references: [id], onDelete: SetNull)
+}
+
+model RedactionEvent {
+  id                  String @id
+  visitId             String
+  mediaId             String
+  status              String
+  redactionTypesJson  String
+  notes               String
+  processedBy         String
+  processedAt         DateTime
+
+  visit               VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+}
+
+model Escalation {
+  id                String @id
+  visitId           String @unique
+  riskLevel         String
+  status            String
+  reason            String
+  recommendedAction String
+  assignedTo        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  visit             VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+}
+
+model OutputDocument {
+  id                         String @id
+  visitId                    String
+  type                       String
+  status                     String
+  title                      String
+  body                       String
+  safetyFlagsJson            String
+  evidenceObservationIdsJson String
+  generatedAt                DateTime
+  generatedBy                String
+  approvedBy                 String?
+  approvedAt                 DateTime?
+
+  visit                      VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id            String @id
+  actorId       String
+  actorRole     String
+  visitId       String?
+  clientId      String?
+  eventType     String
+  summary       String
+  safetyFlagsJson String
+  createdAt     DateTime @default(now())
+
+  visit         VisitSession? @relation(fields: [visitId], references: [id], onDelete: Cascade)
+}
+
+model FollowUpTask {
+  id                     String @id
+  visitId                String
+  escalationId           String?
+  actionType             String
+  priority               String
+  status                 String
+  title                  String
+  recommendationReason   String
+  sourceObservationIdsJson String
+  assignedTo             String?
+  dueAt                  DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  visit                  VisitSession @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId, status])
+  @@index([actionType, status])
+}
