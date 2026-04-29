@@ -48,13 +48,13 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex min-w-0 flex-col gap-3">
-      {eyebrow ? <p className="text-sm font-semibold uppercase tracking-[0.14em] text-teal-700">{eyebrow}</p> : null}
-      <h1 className="w-full max-w-[calc(100vw-2rem)] break-words text-2xl font-semibold leading-tight tracking-normal text-stone-950 sm:max-w-3xl sm:text-4xl">
+    <div className="mb-5 flex min-w-0 flex-col gap-3 sm:mb-6">
+      {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700 sm:text-sm">{eyebrow}</p> : null}
+      <h1 className="w-full max-w-[calc(100vw-2rem)] break-words text-3xl font-semibold leading-tight tracking-normal text-stone-950 sm:max-w-3xl sm:text-4xl">
         {title}
       </h1>
       {children ? (
-        <div className="w-full max-w-[calc(100vw-2rem)] break-words text-base leading-7 text-stone-600 sm:max-w-3xl">
+        <div className="w-full max-w-[calc(100vw-2rem)] break-words text-base leading-7 text-stone-600 sm:max-w-3xl sm:text-lg">
           {children}
         </div>
       ) : null}

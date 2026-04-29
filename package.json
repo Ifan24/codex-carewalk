@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "db:generate": "prisma generate",
-    "db:push": "rm -f prisma/dev.db && prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script | sqlite3 prisma/dev.db",
+    "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:reset": "pnpm db:push && prisma db seed"
   },

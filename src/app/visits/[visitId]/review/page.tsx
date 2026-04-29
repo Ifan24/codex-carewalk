@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { InlineEvidencePhoto } from "@/components/EvidencePhotos";
+import { ReviewChecklistGenerator } from "@/components/ReviewChecklistGenerator";
 import { SubmitVisitReportButton } from "@/components/SubmitVisitReportButton";
 import { GenerateVisitPackButton, VisitOutputs } from "@/components/VisitOutputs";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -21,6 +22,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ visitId
         <p>Check the visit pack, approve the worker note, then submit to the supervisor.</p>
       </PageHeader>
       <div className="space-y-5">
+        <ReviewChecklistGenerator visitId={visit.id} />
         <GenerateVisitPackButton visitId={visit.id} />
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3">
