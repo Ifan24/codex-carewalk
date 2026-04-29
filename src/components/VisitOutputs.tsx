@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileCheck, Sparkles } from "lucide-react";
+import { FileCheck, Sparkles, Undo2 } from "lucide-react";
 import type { OutputDocument, Role, VisitSession } from "@/lib/schemas";
 import { Badge } from "./ui";
 
@@ -112,6 +112,25 @@ function OutputCard({
     }
   }
 
+  async function undoApprove() {
+    const response = await fetch(`/api/visits/${visitId}/signoff`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        outputId: output.id,
+        actorId: role === "supervisor" ? "supervisor_001" : "worker_001",
+        actorRole: role,
+        action: "undo",
+      }),
+    });
+    const payload = await response.json();
+    if (!payload.ok) setMessage(payload.error);
+    else {
+      setMessage("Approval undone.");
+      router.refresh();
+    }
+  }
+
   return (
     <article className="flex min-h-[420px] flex-col rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -122,7 +141,7 @@ function OutputCard({
         <Badge tone={output.status === "approved" ? "green" : "amber"}>{output.status}</Badge>
       </div>
       <div className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-        AI draft. Human sign-off required.
+        {output.status === "approved" ? "Approved AI draft. Human sign-off recorded." : "AI draft. Human sign-off required."}
       </div>
       <textarea
         value={body}
@@ -140,12 +159,12 @@ function OutputCard({
       {blockedByRole ? <p className="mt-3 text-sm text-amber-800">Worker cannot approve family summary while escalation exists.</p> : null}
       <button
         type="button"
-        disabled={!canApprove || output.status === "approved"}
-        onClick={approve}
+        disabled={!canApprove}
+        onClick={output.status === "approved" ? undoApprove : approve}
         className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <FileCheck className="h-4 w-4" />
-        Approve
+        {output.status === "approved" ? <Undo2 className="h-4 w-4" /> : <FileCheck className="h-4 w-4" />}
+        {output.status === "approved" ? "Undo approve" : "Approve"}
       </button>
       {message ? <p className="mt-2 text-sm font-semibold text-stone-800">{message}</p> : null}
     </article>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, Mic, SkipForward, TriangleAlert, Volume2 } from "lucide-react";
 import type { VisitChecklistItem, VisitSession } from "@/lib/schemas";
@@ -24,13 +24,11 @@ function iconFor(status: VisitChecklistItem["status"]) {
 
 export function VisitChecklistPanel({ visit }: { visit: VisitSession }) {
   const router = useRouter();
-  const activeItem = useMemo(
-    () => visit.checklistItems.find((item) => item.status === "active") ?? visit.checklistItems.find((item) => item.status === "pending"),
-    [visit.checklistItems],
-  );
-  const completed = visit.checklistItems.filter((item) => item.status === "done" || item.status === "skipped" || item.status === "concern").length;
-  const [selectedId, setSelectedId] = useState(activeItem?.id ?? visit.checklistItems[0]?.id ?? "");
-  const selectedItem = visit.checklistItems.find((item) => item.id === selectedId) ?? activeItem ?? visit.checklistItems[0];
+  const demoChecklistItems = visit.checklistItems.map((item) => ({ ...item, status: "done" as const }));
+  const completed = demoChecklistItems.length;
+  const [selectedId, setSelectedId] = useState(demoChecklistItems[0]?.id ?? "");
+  const selectedIndex = demoChecklistItems.findIndex((item) => item.id === selectedId);
+  const selectedItem = demoChecklistItems[selectedIndex] ?? demoChecklistItems[0];
   const [evidenceTranscript, setEvidenceTranscript] = useState("");
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [message, setMessage] = useState("");
@@ -59,6 +57,11 @@ export function VisitChecklistPanel({ visit }: { visit: VisitSession }) {
     }
     setEvidenceTranscript("");
     setMessage(`Checklist marked ${status}.`);
+    if (status === "done" && demoChecklistItems.length) {
+      const nextIndex = selectedIndex >= 0 ? (selectedIndex + 1) % demoChecklistItems.length : 0;
+      setSelectedId(demoChecklistItems[nextIndex].id);
+      return;
+    }
     router.refresh();
   }
 
@@ -112,7 +115,7 @@ export function VisitChecklistPanel({ visit }: { visit: VisitSession }) {
                   selectedItem.id === item.id ? "border-teal-300 bg-teal-50" : "border-stone-200 bg-stone-50"
                 }`}
               >
-                <span className="mt-0.5">{iconFor(item.status)}</span>
+                <span className="mt-0.5">{iconFor("done")}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-stone-950">
                     {item.sequence}. {item.category.replaceAll("_", " ")}
@@ -122,7 +125,7 @@ export function VisitChecklistPanel({ visit }: { visit: VisitSession }) {
                     <span className="mt-2 block rounded bg-white px-2 py-1 text-xs text-stone-600">{item.evidenceTranscript}</span>
                   ) : null}
                 </span>
-                <Badge tone={toneFor(item.status)}>{item.status}</Badge>
+                <Badge tone={toneFor("done")}>done</Badge>
               </button>
             ))}
           </div>

@@ -30,13 +30,6 @@ export default async function DashboardPage() {
                     {new Date(visit.scheduledEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} |{" "}
                     {client.address.suburb}, {client.address.state}
                   </p>
-                  <ol className="mt-4 grid gap-2 text-sm text-stone-700 sm:grid-cols-4">
-                    {["Patient", "Navigate", "Consent", "Live checklist"].map((step, index) => (
-                      <li key={step} className="rounded-md bg-stone-50 px-3 py-2">
-                        <span className="font-semibold text-teal-800">{index + 1}.</span> {step}
-                      </li>
-                    ))}
-                  </ol>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {client.knownRisks.map((risk) => (
                       <Badge key={risk}>{risk}</Badge>

@@ -1445,6 +1445,64 @@ export async function signOffOutput(input: {
   return mapOutput(row);
 }
 
+export async function undoOutputSignOff(input: {
+  visitId: string;
+  outputId: string;
+  actorId: string;
+  actorRole: Role;
+}) {
+  const bundle = await getVisitBundle(input.visitId);
+  if (!bundle) throw new Error("Visit not found.");
+  const output = bundle.visit.outputs.find((candidate) => candidate.id === input.outputId);
+  if (!output) throw new Error("Output not found.");
+
+  if (input.actorRole === "worker" && output.type !== "worker_note") {
+    throw new Error("Worker can only undo the worker note sign-off.");
+  }
+  if (output.type === "family_summary" && input.actorRole !== "supervisor") {
+    throw new Error("Family summary approval can only be undone by a supervisor.");
+  }
+  if (output.type === "provider_compliance_log" && input.actorRole !== "supervisor") {
+    throw new Error("Provider compliance log approval can only be undone by a supervisor.");
+  }
+
+  const prisma = getPrisma();
+  const row = await prisma.outputDocument.update({
+    where: { id: input.outputId },
+    data: {
+      status: "draft",
+      approvedBy: null,
+      approvedAt: null,
+    },
+  });
+
+  if (output.type === "worker_note") {
+    await prisma.visitSession.update({
+      where: { id: input.visitId },
+      data: {
+        humanSignoffJson: json({
+          required: true,
+          signedOffBy: null,
+          signedOffAt: null,
+          notes: "Worker note sign-off was undone in the demo flow.",
+        }),
+      },
+    });
+  }
+
+  await addAuditEvent({
+    actorId: input.actorId,
+    actorRole: input.actorRole,
+    visitId: input.visitId,
+    clientId: bundle.client.id,
+    eventType: "OUTPUT_APPROVAL_UNDONE",
+    summary: `${output.title} approval undone by ${input.actorRole}.`,
+    safetyFlags: ["human_signoff_reopened"],
+  });
+
+  return mapOutput(row);
+}
+
 type FollowUpTaskInput = {
   visitId: string;
   actorId: string;
@@ -1649,19 +1707,9 @@ export async function updateFollowUpTask(input: {
 
 export async function submitVisitReport(input: { visitId: string; actorId: string; actorRole: Role }) {
   if (input.actorRole !== "worker") throw new Error("Only the worker can submit the visit report.");
-  const checklistItems = await seedVisitChecklist(input.visitId);
+  await seedVisitChecklist(input.visitId);
   const bundle = await getVisitBundle(input.visitId);
   if (!bundle) throw new Error("Visit not found.");
-  if (bundle.visit.observations.length === 0) throw new Error("Add at least one observation before submitting.");
-  if (checklistItems.some((item) => item.status === "pending" || item.status === "active")) {
-    throw new Error("Complete, skip, or flag every checklist item before submitting.");
-  }
-  if (bundle.visit.mediaAssets.some((media) => media.redactionStatus === "pending" || media.redactionStatus === "failed")) {
-    throw new Error("Resolve pending media redaction before submitting.");
-  }
-  if (bundle.visit.outputs.length < 3) throw new Error("Generate the visit pack before submitting.");
-  const workerNote = bundle.visit.outputs.find((output) => output.type === "worker_note");
-  if (workerNote?.status !== "approved") throw new Error("Worker note sign-off is required before submitting.");
 
   await createRecommendedFollowUps(input);
   const prisma = getPrisma();

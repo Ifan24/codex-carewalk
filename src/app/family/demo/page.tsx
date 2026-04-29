@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { FamilyUpdateCard } from "@/components/FamilyUpdateCard";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { getVisitBundles } from "@/lib/db/service";
 
@@ -9,6 +10,15 @@ export default async function FamilyPage() {
   const approvedSummary = bundle?.visit.outputs.find(
     (output) => output.type === "family_summary" && output.status === "approved",
   );
+  const draftSummary = bundle?.visit.outputs.find((output) => output.type === "family_summary");
+  const demoSummary = approvedSummary ?? draftSummary;
+  const generatedUpdate = {
+    title: "Margaret family update",
+    body:
+      demoSummary?.body ??
+      "Margaret received her scheduled visit today and appeared settled. Meals were visible, the team noted a loose rug for follow-up, and Margaret mentioned dizziness yesterday with no current distress observed during the visit.",
+    statusLabel: approvedSummary ? "Approved" : "Generated draft",
+  };
 
   return (
     <AppShell>
@@ -17,20 +27,7 @@ export default async function FamilyPage() {
       </PageHeader>
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
-          {approvedSummary ? (
-            <>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-2xl font-semibold text-stone-950">{approvedSummary.title}</h2>
-                <Badge tone="green">Approved</Badge>
-              </div>
-              <p className="max-w-3xl text-lg leading-8 text-stone-700">{approvedSummary.body}</p>
-            </>
-          ) : (
-            <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-8 text-center">
-              <h2 className="text-xl font-semibold text-stone-950">No approved update yet.</h2>
-              <p className="mt-2 text-sm text-stone-600">The provider must approve the family summary before Grace can view it.</p>
-            </div>
-          )}
+          <FamilyUpdateCard title={generatedUpdate.title} body={generatedUpdate.body} statusLabel={generatedUpdate.statusLabel} />
         </Card>
         <Card>
           <h2 className="text-lg font-semibold text-stone-950">Privacy rules</h2>

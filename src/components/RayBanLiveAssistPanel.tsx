@@ -3,48 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Clock,
-  Glasses,
-  Play,
+  Pause,
   Radio,
   Save,
   Square,
-  Wifi,
 } from "lucide-react";
-import type { LiveRayBanEvent, LiveRayBanFrame, VisitSession } from "@/lib/schemas";
-import { demoEvidencePhotos } from "@/lib/demo/evidence";
-import { InlineEvidencePhoto } from "./EvidencePhotos";
+import type { LiveRayBanFrame, VisitSession } from "@/lib/schemas";
 import { Badge } from "./ui";
 import { SafeModePanel } from "./SafeModePanel";
-
-function eventLabel(event: LiveRayBanEvent) {
-  if (event.eventType === "transcript_chunk") return "Transcript";
-  if (event.eventType === "hazard_candidate") return "Hazard";
-  if (event.eventType === "question_answer") return "Q&A";
-  if (event.eventType === "checklist_prompt") return "Prompt";
-  if (event.eventType === "checklist_response") return "Checklist";
-  if (event.eventType === "session_started") return "Started";
-  return "Ended";
-}
-
-function eventSummary(event: LiveRayBanEvent) {
-  if (event.eventType === "transcript_chunk") return String(event.payload.text ?? "");
-  if (event.eventType === "hazard_candidate") {
-    const frame = typeof event.payload.frameId === "string" ? ` (${event.payload.frameId})` : "";
-    return `${String(event.payload.label ?? "Hazard")} - ${String(event.payload.summary ?? "")}${frame}`;
-  }
-  if (event.eventType === "question_answer") return `${String(event.payload.question ?? "")} -> ${String(event.payload.answer ?? "")}`;
-  if (event.eventType === "checklist_prompt") return String(event.payload.prompt ?? "");
-  if (event.eventType === "checklist_response") {
-    return `${String(event.payload.status ?? "captured")}: ${String(event.payload.evidenceTranscript ?? event.payload.prompt ?? "")}`;
-  }
-  return String(event.payload.bridge ?? event.payload.endedAt ?? event.createdAt);
-}
-
-function eventEvidencePhoto(event: LiveRayBanEvent) {
-  const payloadText = JSON.stringify(event.payload);
-  return demoEvidencePhotos.find((photo) => photo.observationMatch.test(payloadText)) ?? null;
-}
 
 function readSessionToken(payload: unknown) {
   if (!payload || typeof payload !== "object" || !("event" in payload)) return "";
@@ -73,7 +39,6 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
     (lastConsent.captureModesAllowed.includes("rayban_live_assist") ||
       (lastConsent.captureModesAllowed.includes("rayban_media_upload") &&
         lastConsent.captureModesAllowed.includes("voice_transcript")));
-  const [events, setEvents] = useState<LiveRayBanEvent[]>([]);
   const [latestFrame, setLatestFrame] = useState<LiveRayBanFrame | null>(null);
   const [sessionToken, setSessionToken] = useState("");
   const [active, setActive] = useState(false);
@@ -82,7 +47,6 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
   const [nowMs, setNowMs] = useState(0);
 
   const frameUploadUrl = useMemo(() => `/api/visits/${visit.id}/worker-glasses/frame`, [visit.id]);
-  const bridgeUrl = useMemo(() => `/api/visits/${visit.id}/worker-glasses/events`, [visit.id]);
   const frameIsStale = latestFrame ? nowMs - new Date(latestFrame.receivedAt).getTime() > 5000 : true;
 
   const syncWorkerGlassesDemoRate = useCallback((video: HTMLVideoElement) => {
@@ -97,12 +61,6 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
     [syncWorkerGlassesDemoRate],
   );
 
-  const refreshEvents = useCallback(async () => {
-    const response = await fetch(`/api/visits/${visit.id}/worker-glasses/events`, { cache: "no-store" });
-    const payload = await response.json();
-    if (payload.ok) setEvents(payload.events);
-  }, [visit.id]);
-
   const refreshFrame = useCallback(async () => {
     const response = await fetch(frameUploadUrl, { cache: "no-store" });
     const payload = await response.json();
@@ -114,10 +72,9 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
     const interval = window.setInterval(() => {
       setNowMs(Date.now());
       void refreshFrame();
-      void refreshEvents();
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [active, refreshEvents, refreshFrame]);
+  }, [active, refreshFrame]);
 
   async function callLiveApi(path: "start" | "end", body: Record<string, unknown>) {
     setBusy(true);
@@ -133,7 +90,6 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
       setMessage(payload.error);
       return payload;
     }
-    if (payload.events) setEvents(payload.events);
     return payload;
   }
 
@@ -206,7 +162,7 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
       {!liveAllowed ? <SafeModePanel reasons={["Worker Glasses requires media and voice note consent"]} /> : null}
 
       <div className="grid gap-5 xl:grid-cols-[1.35fr_0.85fr]">
-        <div className="space-y-4">
+        <div className="space-y-4 xl:col-span-2">
           <div className="overflow-hidden rounded-lg border border-stone-900 bg-stone-950">
             <div className="relative aspect-video w-full">
               {latestFrame ? (
@@ -216,7 +172,7 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
                 <video
                   ref={setWorkerGlassesDemoVideo}
                   src={workerGlassesDemoVideoSrc}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover"
                   autoPlay
                   loop
                   muted
@@ -227,16 +183,6 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
                   aria-label="Worker Glasses demo feed"
                 />
               )}
-              <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-xs font-semibold text-white">
-                  <Wifi className="h-3.5 w-3.5" /> {latestFrame && !frameIsStale ? "Live" : "0.25x"}
-                </span>
-                {latestFrame ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-xs font-semibold text-white">
-                    <Clock className="h-3.5 w-3.5" /> {new Date(latestFrame.receivedAt).toLocaleTimeString()}
-                  </span>
-                ) : null}
-              </div>
             </div>
           </div>
 
@@ -247,8 +193,8 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
               onClick={startLive}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Play className="h-4 w-4" />
-              Start live
+              <Pause className="h-4 w-4" />
+              Pause Recording
             </button>
             <button
               type="button"
@@ -269,56 +215,7 @@ export function RayBanLiveAssistPanel({ visit }: { visit: VisitSession }) {
               End session
             </button>
           </div>
-
-          <div className="grid gap-3 rounded-lg border border-teal-100 bg-teal-50 p-4 text-sm text-stone-700 md:grid-cols-2">
-            <div>
-              <p className="mb-2 font-semibold text-teal-950">Frame URL</p>
-              <p className="break-all rounded-md bg-white px-3 py-2 font-mono text-xs">{frameUploadUrl}</p>
-            </div>
-            <div>
-              <p className="mb-2 font-semibold text-teal-950">Event URL</p>
-              <p className="break-all rounded-md bg-white px-3 py-2 font-mono text-xs">{bridgeUrl}</p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="mb-2 font-semibold text-teal-950">Session token</p>
-              <p className="break-all rounded-md bg-white px-3 py-2 font-mono text-xs">
-                {sessionToken || "Start live to generate a token."}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
           {message ? <p className="rounded-md bg-stone-50 px-3 py-2 text-sm font-semibold text-stone-800">{message}</p> : null}
-
-          <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="flex items-center gap-2 text-sm font-semibold text-stone-900">
-                <Glasses className="h-4 w-4" /> Events
-              </p>
-              <Badge tone="neutral">{events.length} events</Badge>
-            </div>
-            <div className="max-h-[430px] space-y-2 overflow-auto pr-1">
-              {events.map((event) => {
-                const photo = eventEvidencePhoto(event);
-                return (
-                  <div key={event.id} className="rounded-md border border-stone-200 bg-white p-3">
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-stone-900">{eventLabel(event)}</p>
-                      <span className="font-mono text-xs text-stone-500">{new Date(event.createdAt).toLocaleTimeString()}</span>
-                    </div>
-                    <p className="text-sm leading-5 text-stone-700">{eventSummary(event)}</p>
-                    {photo ? <InlineEvidencePhoto photo={photo} /> : null}
-                  </div>
-                );
-              })}
-              {!events.length ? (
-                <div className="grid min-h-40 place-items-center rounded-md bg-white text-center text-sm text-stone-500">
-                  No events yet.
-                </div>
-              ) : null}
-            </div>
-          </div>
         </div>
       </div>
     </section>

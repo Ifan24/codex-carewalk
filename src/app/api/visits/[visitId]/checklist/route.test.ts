@@ -48,13 +48,14 @@ describe("visit checklist API routes", () => {
     expect(payload.status).toBe("done");
   });
 
-  it("blocks report submission until prerequisites are complete", async () => {
+  it("allows demo report submission before prerequisites are complete", async () => {
     await resetDemoData();
     const response = await submitVisit(jsonRequest({ actorId: "worker_001", actorRole: "worker" }), {
       params: Promise.resolve({ visitId: "visit_001" }),
     });
     const payload = await response.json();
-    expect(response.status).toBe(400);
-    expect(payload.error).toMatch(/observation|checklist|pack|sign-off/i);
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect(payload.bundle.visit.status).toBe("submitted");
   });
 });

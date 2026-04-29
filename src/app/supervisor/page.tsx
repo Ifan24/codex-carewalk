@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
-import { AuditTrail } from "@/components/AuditTrail";
 import { FollowUpTaskBoard } from "@/components/FollowUpTaskBoard";
 import { VisitOutputs } from "@/components/VisitOutputs";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -49,7 +48,7 @@ export default async function SupervisorPage() {
           )}
         </section>
         <section className="space-y-5">
-          {bundles.map(({ visit, client, auditEvents, followUpTasks }) => (
+          {bundles.map(({ visit, client, followUpTasks }) => (
             <div key={visit.id} className="space-y-5">
               <Card>
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -68,10 +67,6 @@ export default async function SupervisorPage() {
                 <FollowUpTaskBoard tasks={followUpTasks} />
               </Card>
               <VisitOutputs visit={visit} role="supervisor" />
-              <Card>
-                <h2 className="mb-3 text-lg font-semibold text-stone-950">Audit trail</h2>
-                <AuditTrail events={auditEvents} />
-              </Card>
             </div>
           ))}
         </section>

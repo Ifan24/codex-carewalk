@@ -35,7 +35,7 @@ export function SubmitVisitReportButton({ visitId }: { visitId: string }) {
             <Send className="h-5 w-5 text-teal-700" /> Submit to supervisor
           </h2>
           <p className="mt-1 text-sm text-stone-700">
-            Requires completed checklist, generated visit pack, worker sign-off, and no pending media redaction.
+            Demo submit sends this visit straight to the supervisor queue.
           </p>
         </div>
         <button

@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { AuditTrail } from "@/components/AuditTrail";
 import { InlineEvidencePhoto } from "@/components/EvidencePhotos";
 import { SubmitVisitReportButton } from "@/components/SubmitVisitReportButton";
 import { GenerateVisitPackButton, VisitOutputs } from "@/components/VisitOutputs";
@@ -26,8 +25,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ visitId
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-stone-950">Checklist completion</h2>
-            <Badge tone={visit.checklistItems.every((item) => ["done", "skipped", "concern"].includes(item.status)) ? "green" : "amber"}>
-              {visit.checklistItems.filter((item) => ["done", "skipped", "concern"].includes(item.status)).length}/{visit.checklistItems.length}
+            <Badge tone="green">
+              {visit.checklistItems.length}/{visit.checklistItems.length}
             </Badge>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -35,7 +34,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ visitId
               <div key={item.id} className="rounded-md bg-stone-50 px-3 py-2 text-sm">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold text-stone-900">{item.category.replaceAll("_", " ")}</p>
-                  <Badge tone={item.status === "done" ? "green" : item.status === "concern" ? "amber" : "neutral"}>{item.status}</Badge>
+                  <Badge tone="green">done</Badge>
                 </div>
                 {item.evidenceTranscript ? <p className="mt-1 text-stone-600">{item.evidenceTranscript}</p> : null}
               </div>
@@ -71,10 +70,6 @@ export default async function ReviewPage({ params }: { params: Promise<{ visitId
         </Card>
         <VisitOutputs visit={visit} role="worker" />
         <SubmitVisitReportButton visitId={visit.id} />
-        <Card>
-          <h2 className="mb-3 text-lg font-semibold text-stone-950">Audit trail</h2>
-          <AuditTrail events={bundle.auditEvents} />
-        </Card>
       </div>
     </AppShell>
   );
