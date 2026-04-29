@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { generateReviewChecklist } from "@/lib/ai/review-checklist";
 import { getVisitBundle } from "@/lib/db/service";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 export async function POST(_request: Request, { params }: { params: Promise<{ visitId: string }> }) {
   const { visitId } = await params;
   const bundle = await getVisitBundle(visitId);
